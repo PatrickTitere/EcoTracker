@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ActivityCategory {
+  cleanup
+  planting
+  repair
+  education
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  xp           Int      @default(0)
+  level        Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  completions ActivityCompletion[]
+  badges      UserBadge[]
+}
+
+model Activity {
+  id            String           @id @default(cuid())
+  title         String
+  description   String
+  category      ActivityCategory
+  latitude      Float
+  longitude     Float
+  radiusMeters  Int              @default(100)
+  xpReward      Int              @default(50)
+  imageUrl      String?
+  isActive      Boolean          @default(true)
+  scheduledAt   DateTime?
+  createdAt     DateTime         @default(now())
+
+  completions ActivityCompletion[]
+}
+
+model ActivityCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  activityId  String
+  completedAt DateTime @default(now())
+  checkInLat  Float
+  checkInLng  Float
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityId])
+}
+
+model Badge {
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String
+  description String
+  iconKey     String
+  criteria    Json
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
